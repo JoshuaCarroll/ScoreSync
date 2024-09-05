@@ -12,24 +12,35 @@ using System.Net.Sockets;
 class Program
 {
     static Dictionary<Regex, Action<Match, ScoreboardOCRData>> regexHandlers;
-    static string EndPointUrl;
+    static string EndPointUrl = "";
+    static int EndPointPort;
+    static string ComPortName = "";
     static ScoreboardOCRData scoreboardData = new ScoreboardOCRData();
     static string LastSentJson = "";
 
     static async Task Main(string[] args)
     {
-        // Check if the correct number of command line arguments is passed
+        string strEndPointPort = "";
         if (args.Length != 3)
         {
-            Console.WriteLine("Usage: ScoreSync <COM port> <serverAddress> <serverPort>");
-            return;
+            Console.WriteLine("Usage: ScoreSync <COM port> <serverAddress> <serverPort>\r\n");
+            Console.WriteLine("Which COM port?");
+            ComPortName = Console.ReadLine();
+
+            Console.WriteLine("What is the server address?");
+            EndPointUrl = Console.ReadLine();
+
+            Console.WriteLine("What is the server port?");
+            strEndPointPort = Console.ReadLine();
+        }
+        else
+        {
+            ComPortName = args[0];
+            EndPointUrl = args[1];
+            strEndPointPort = args[2];
         }
 
-        string portName = args[0];
-        string EndPointUrl = args[1];
-        int EndPointPort;
-
-        if (!int.TryParse(args[2], out EndPointPort))
+        if (!int.TryParse(strEndPointPort, out EndPointPort))
         {
             Console.WriteLine("Server port must be numeric.");
             return;
@@ -43,13 +54,13 @@ class Program
         StopBits stopBits = StopBits.One;
 
         // Check if the specified COM port is available
-        if (!Array.Exists(SerialPort.GetPortNames(), port => port.Equals(portName, StringComparison.OrdinalIgnoreCase)))
+        if (!Array.Exists(SerialPort.GetPortNames(), port => port.Equals(ComPortName, StringComparison.OrdinalIgnoreCase)))
         {
-            Console.WriteLine($"COM port {portName} is not available.");
+            Console.WriteLine($"COM port {ComPortName} is not available.");
             return;
         }
 
-        using (SerialPort serialPort = new SerialPort(portName, baudRate, parity, dataBits, stopBits))
+        using (SerialPort serialPort = new SerialPort(ComPortName, baudRate, parity, dataBits, stopBits))
         {
             serialPort.Open();
             Console.WriteLine("Waiting for data...");
