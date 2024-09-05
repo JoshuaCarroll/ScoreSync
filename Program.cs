@@ -166,7 +166,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to send data over TCP to {serverAddress}:{port.ToString()}";
+            Console.WriteLine($"Failed to send data over TCP to {serverAddress}:{port.ToString()}");
             Console.WriteLine($"Exception: {ex.Message}\r\n{ex.StackTrace}");
             Console.WriteLine(jsonData);
         }
