@@ -61,7 +61,7 @@ class Program
                     if (TransformToScoreboardData(data))
                     {
                         string jsonData = scoreboardData.ToJson();
-                        await SendJsonData(jsonData, EndPointPort, EndPointUrl);
+                        await SendJsonData(EndPointUrl, EndPointPort, jsonData);
                     }
                     else
                     {
