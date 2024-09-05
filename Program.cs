@@ -30,8 +30,7 @@ class Program
 
         if (!int.TryParse(args[2], out EndPointPort))
         {
-            Console.WriteLine("Usage: ScoreSync <COM port> <serverAddress> <serverPort>");
-            Console.WriteLine("  Server port must be numeric.");
+            Console.WriteLine("Server port must be numeric.");
             return;
         }
 
@@ -167,7 +166,8 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to send data over TCP. Exception: {ex.Message}\r\n{ex.StackTrace}");
+            Console.WriteLine($"Failed to send data over TCP to {serverAddress}:{port.ToString()}";
+            Console.WriteLine($"Exception: {ex.Message}\r\n{ex.StackTrace}");
             Console.WriteLine(jsonData);
         }
     }
