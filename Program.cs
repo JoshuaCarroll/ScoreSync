@@ -14,6 +14,7 @@ class Program
     static Dictionary<Regex, Action<Match, ScoreboardOCRData>> regexHandlers;
     static string EndPointUrl;
     static ScoreboardOCRData scoreboardData = new ScoreboardOCRData();
+    static string LastSentJson = "";
 
     static async Task Main(string[] args)
     {
@@ -154,21 +155,25 @@ class Program
 
     static async Task SendJsonData(string serverAddress, int port, string jsonData)
     {
-        try
+        if (jsonData != LastSentJson)
         {
-            using (TcpClient client = new TcpClient(serverAddress, port))
-            using (NetworkStream networkStream = client.GetStream())
+            try
             {
-                byte[] data = Encoding.UTF8.GetBytes(jsonData);
-                await networkStream.WriteAsync(data, 0, data.Length);
+                using (TcpClient client = new TcpClient(serverAddress, port))
+                using (NetworkStream networkStream = client.GetStream())
+                {
+                    byte[] data = Encoding.UTF8.GetBytes(jsonData);
+                    await networkStream.WriteAsync(data, 0, data.Length);
+                }
                 Console.Write(".");
+                LastSentJson = jsonData;
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to send data over TCP to {serverAddress}:{port.ToString()}");
-            Console.WriteLine($"Exception: {ex.Message}\r\n{ex.StackTrace}");
-            Console.WriteLine(jsonData);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send data over TCP to {serverAddress}:{port.ToString()}");
+                Console.WriteLine($"Exception: {ex.Message}\r\n{ex.StackTrace}");
+                Console.WriteLine(jsonData);
+            }
         }
     }
 }
