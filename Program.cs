@@ -8,6 +8,9 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using ScoreSync;
 using System.Net.Sockets;
+using Spectre.Console;
+using Spectre.Console.Json;
+using System.Xml.Linq;
 
 class Program
 {
@@ -63,24 +66,41 @@ class Program
         using (SerialPort serialPort = new SerialPort(ComPortName, baudRate, parity, dataBits, stopBits))
         {
             serialPort.Open();
-            Console.WriteLine("Waiting for data...");
+            Console.Clear();
 
-            while (true)
-            {
-                string data = ReadData(serialPort);
-                if (!string.IsNullOrEmpty(data))
+            var table = new Table()
+                .Border(TableBorder.Rounded)
+                .AddColumn("Period")
+                .AddColumn("Clock")
+                .AddColumn("Home")
+                .AddColumn("Away");
+
+            // Use LiveDisplay to update the table
+            await AnsiConsole.Live(table)
+                .StartAsync(async ctx =>
                 {
-                    if (TransformToScoreboardData(data))
+                    while (true)
                     {
-                        string jsonData = scoreboardData.ToJson();
-                        await SendJsonData(EndPointUrl, EndPointPort, jsonData);
+                        string data = ReadData(serialPort);
+                        if (!string.IsNullOrEmpty(data))
+                        {
+                            if (TransformToScoreboardData(data))
+                            {
+                                table.AddRow(scoreboardData.Period, scoreboardData.GameClock, scoreboardData.ScoreHome, scoreboardData.ScoreAway);
+                                ctx.Refresh();
+
+                                string jsonData = scoreboardData.ToJson();
+                                await SendJsonData(EndPointUrl, EndPointPort, jsonData);
+                            }
+                            else
+                            {
+                                AnsiConsole.Markup($"[red]Unrecognized: {data}");
+                            }
+                        }
                     }
-                    else
-                    {
-                        Console.WriteLine($"|{data}|");
-                    }
-                }
-            }
+                });
+
+
         }
     }
 

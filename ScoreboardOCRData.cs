@@ -10,7 +10,17 @@ namespace ScoreSync
 {
     class ScoreboardOCRData
     {
-        public string GameClock;
+        public string GameClock 
+        { 
+            get
+            {
+                return gameClock;
+            }
+            set
+            {
+                gameClock = value;
+            }
+        }
         public string Period
         {
             get
@@ -220,6 +230,7 @@ namespace ScoreSync
         private string toGo;
         private string ballOn;
         private string possession;
+        private string gameClock;
 
         public string ToJson()
         {
