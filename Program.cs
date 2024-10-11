@@ -11,6 +11,8 @@ using System.Net.Sockets;
 using Spectre.Console;
 using Spectre.Console.Json;
 using System.Xml.Linq;
+using System.Security.AccessControl;
+using System.Diagnostics;
 
 class Program
 {
@@ -23,30 +25,30 @@ class Program
 
     static async Task Main(string[] args)
     {
-        string strEndPointPort = "";
         if (args.Length != 3)
         {
             Console.WriteLine("Usage: ScoreSync <COM port> <serverAddress> <serverPort>\r\n");
-            Console.WriteLine("Which COM port?");
-            ComPortName = Console.ReadLine();
 
-            Console.WriteLine("What is the server address?");
-            EndPointUrl = Console.ReadLine();
+            ComPortName = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("Which COM port is the ESPN box?")
+                    .PageSize(10)
+                    .AddChoices(SerialPort.GetPortNames()));
 
-            Console.WriteLine("What is the server port?");
-            strEndPointPort = Console.ReadLine();
+            EndPointUrl = AnsiConsole.Prompt(new TextPrompt<string>("What is the address of the scorebug generator?"));
+
+            EndPointPort = AnsiConsole.Prompt(new TextPrompt<int>("What is the server port?"));
         }
         else
         {
             ComPortName = args[0];
             EndPointUrl = args[1];
-            strEndPointPort = args[2];
-        }
 
-        if (!int.TryParse(strEndPointPort, out EndPointPort))
-        {
-            Console.WriteLine("Server port must be numeric.");
-            return;
+            if (!int.TryParse(args[2], out EndPointPort))
+            {
+                Console.WriteLine("Server port must be numeric.");
+                return;
+            }
         }
 
         InitializeRegexHandlers();
@@ -68,37 +70,31 @@ class Program
             serialPort.Open();
             Console.Clear();
 
-            var table = new Table()
-                .Border(TableBorder.Rounded)
-                .AddColumn("Period")
-                .AddColumn("Clock")
-                .AddColumn("Home")
-                .AddColumn("Away");
+            AnsiConsole.WriteLine("");
 
-            // Use LiveDisplay to update the table
-            await AnsiConsole.Live(table)
-                .StartAsync(async ctx =>
+            while (true)
+            {
+                string data = ReadData(serialPort);
+                if (!string.IsNullOrEmpty(data))
                 {
-                    while (true)
+                    if (TransformToScoreboardData(data))
                     {
-                        string data = ReadData(serialPort);
-                        if (!string.IsNullOrEmpty(data))
-                        {
-                            if (TransformToScoreboardData(data))
-                            {
-                                table.AddRow(scoreboardData.Period, scoreboardData.GameClock, scoreboardData.ScoreHome, scoreboardData.ScoreAway);
-                                ctx.Refresh();
+                        Console.Clear();
 
-                                string jsonData = scoreboardData.ToJson();
-                                await SendJsonData(EndPointUrl, EndPointPort, jsonData);
-                            }
-                            else
-                            {
-                                AnsiConsole.Markup($"[red]Unrecognized: {data}");
-                            }
-                        }
+                        AnsiConsole.WriteLine($"Period: {scoreboardData.Period}  Clock: {scoreboardData.GameClock}  Home: {scoreboardData.ScoreHome}  Away: {scoreboardData.ScoreAway}");
+
+                        string jsonData = scoreboardData.ToJson();
+                        await SendJsonData(EndPointUrl, EndPointPort, jsonData);
+
+                        AnsiConsole.WriteLine(jsonData);
+ 
                     }
-                });
+                    else
+                    {
+                        Debug.WriteLine($"Unrecognized: {data}");
+                    }
+                }
+            }
 
 
         }
@@ -112,8 +108,8 @@ class Program
                 new Regex(@"F(.{10})(.{2})(.{1})(.{10})(.{2})(.{1})(.{1})(.{2})(.{2})(.{1})"),
                 (match, data) =>
                 {
-                    data.ScoreHome = match.Groups[2].Value;
-                    data.ScoreAway = match.Groups[5].Value;
+                    data.ScoreHome = match.Groups[2].Value.Trim();
+                    data.ScoreAway = match.Groups[5].Value.Trim();
                     data.TimeoutsHome = match.Groups[3].Value;
                     data.TimeoutsAway = match.Groups[6].Value;
                     data.Downs = match.Groups[7].Value;
@@ -126,9 +122,9 @@ class Program
                 new Regex(@"C(.{5})(.{1})(.{2})"),
                 (match, data) =>
                 {
-                    data.GameClock = $"{match.Groups[1].Value.Substring(0, 2)}:{match.Groups[1].Value.Substring(2, 2)}.{match.Groups[1].Value.Substring(4, 1)}";
+                    data.GameClock = $"{match.Groups[1].Value.Substring(0, 2)}:{match.Groups[1].Value.Substring(2, 2)}";//.{match.Groups[1].Value.Substring(4, 1)}";
                     data.Period = match.Groups[2].Value;
-                    data.ShotClock = match.Groups[3].Value;
+                    data.ShotClock = match.Groups[3].Value.Trim();
                 }
             }
         };
@@ -186,7 +182,7 @@ class Program
 
     static async Task SendJsonData(string serverAddress, int port, string jsonData)
     {
-        if (jsonData != LastSentJson)
+        if (serverAddress.ToLower() != "none" && jsonData != LastSentJson)
         {
             try
             {

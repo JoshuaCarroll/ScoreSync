@@ -18,7 +18,7 @@ namespace ScoreSync
             }
             set
             {
-                gameClock = value;
+                gameClock = value.ToString();
             }
         }
         public string Period
@@ -218,19 +218,19 @@ namespace ScoreSync
             }
         }
 
-        private string period;
-        private string scoreAway;
-        private string scoreHome;
-        private string foulsAway;
-        private string foulsHome;
-        private string timeoutsAway;
-        private string timeoutsHome;
-        private string shotClock;
-        private string down;
-        private string toGo;
-        private string ballOn;
-        private string possession;
-        private string gameClock;
+        private string period = "0";
+        private string scoreAway = "0";
+        private string scoreHome = "0";
+        private string foulsAway = "0";
+        private string foulsHome = "0";
+        private string timeoutsAway = "0";
+        private string timeoutsHome = "0";
+        private string shotClock = "0";
+        private string down = "0";
+        private string toGo = "0";
+        private string ballOn = "0";
+        private string possession = "";
+        private string gameClock = "00:00";
 
         public string ToJson()
         {
